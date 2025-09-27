@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plagiarism Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; font-weight: bold; }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { background: #0056b3; }
+        
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            margin: 20px 0;
+        }
+        
+        .file-input {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+        }
+        
+        .similarity-score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+        }
+        
+        .high-similarity { background: #f8d7da; color: #721c24; }
+        .medium-similarity { background: #fff3cd; color: #856404; }
+        .low-similarity { background: #d4edda; color: #155724; }
+        
+        .matches-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        
+        .match-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #007bff;
+            background: white;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Plagiarism Checker</h1>
+            <p>Advanced plagiarism detection using Rabin-Karp & KMP algorithms</p>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="section">
+            <h3>📁 Upload Documents</h3>
+            <div class="upload-area">
+                <h4>🚀 Upload Files for Comparison</h4>
+                <p>Support: .txt, .pdf, .docx files (max 10MB each)</p>
+                
+                <div style="margin: 20px 0;">
+                    <label><strong>Source Document:</strong></label><br>
+                    <input type="file" id="sourceFile" class="file-input" accept=".txt,.pdf,.docx">
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <label><strong>Comparison Document:</strong></label><br>
+                    <input type="file" id="comparisonFile" class="file-input" accept=".txt,.pdf,.docx">
+                </div>
+                
+                <button class="btn" onclick="uploadAndCompareFiles()">🔍 Check for Plagiarism</button>
+            </div>
+        </div>
+
+        <!-- Text Input Section -->
+        <div class="section">
+            <h3>✏️ Or Enter Text Directly</h3>
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <label><strong>Source Text:</strong></label>
+                    <textarea id="sourceText" placeholder="Paste your original text here..."></textarea>
+                </div>
+                <div style="flex: 1;">
+                    <label><strong>Comparison Text:</strong></label>
+                    <textarea id="comparisonText" placeholder="Paste text to check for plagiarism..."></textarea>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn" onclick="compareText()">🔍 Compare Texts</button>
+                <button class="btn" onclick="fillSampleData()">📝 Load Sample Data</button>
+                <button class="btn" onclick="fillTestCase1()">🧪 Test Case 1 (High)</button>
+                <button class="btn" onclick="fillTestCase2()">🧪 Test Case 2 (Medium)</button>
+                <button class="btn" onclick="fillTestCase3()">🧪 Test Case 3 (Low)</button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="section">
+            <h3>📊 Results</h3>
+            <div id="results"></div>
+        </div>
+
+        <!-- API Test Section -->
+        <div class="section">
+            <h3>🧪 Quick Algorithm Tests</h3>
+            <button class="btn" onclick="testHealth()">Test Health API</button>
+            <button class="btn" onclick="testAlgorithmsHigh()">Test High Similarity</button>
+            <button class="btn" onclick="testAlgorithmsLow()">Test Low Similarity</button>
+            <div id="apiResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Utility function to safely get numeric values
+        function safeNumber(value, defaultValue = 0) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return defaultValue;
+            }
+            return Number(value);
+        }
+
+        // Utility function to safely format numbers
+        function safeToFixed(value, decimals = 1) {
+            const num = safeNumber(value, 0);
+            return num.toFixed(decimals);
+        }
+
+        // File Upload and Comparison
+        async function uploadAndCompareFiles() {
+            const sourceFile = document.getElementById('sourceFile').files[0];
+            const comparisonFile = document.getElementById('comparisonFile').files[0];
+            
+            if (!sourceFile || !comparisonFile) {
+                showResults('❌ Please select both source and comparison files.', 'error');
+                return;
+            }
+            
+            showResults('⏳ Processing files...', 'info');
+            
+            try {
+                // Extract text from files (we'll need to add this endpoint)
+                const sourceText = await extractTextFromFile(sourceFile);
+                const comparisonText = await extractTextFromFile(comparisonFile);
+                
+                // Compare the extracted texts
+                await comparePlagiarism(sourceText, comparisonText);
+                
+            } catch (error) {
+                showResults(`❌ Error processing files: ${error.message}`, 'error');
+            }
+        }
+        
+        // Extract text from uploaded file
+        async function extractTextFromFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch('/api/extract-text', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to extract text from ${file.name}`);
+            }
+            
+            return await response.text();
+        }
+        
+        // Compare text directly
+        async function compareText() {
+            const sourceText = document.getElementById('sourceText').value.trim();
+            const comparisonText = document.getElementById('comparisonText').value.trim();
+            
+            if (!sourceText || !comparisonText) {
+                showResults('❌ Please enter both source and comparison texts.', 'error');
+                return;
+            }
+            
+            await comparePlagiarism(sourceText, comparisonText);
+        }
+        
+        // Main plagiarism detection function
+        async function comparePlagiarism(sourceText, comparisonText) {
+            showResults('⏳ Analyzing texts for plagiarism...', 'info');
+            
+            try {
+                const response = await fetch('/api/detect-plagiarism', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sourceText: sourceText,
+                        comparisonText: comparisonText
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                // Validate result object
+                if (!result) {
+                    throw new Error('Empty response from server');
+                }
+                
+                displayPlagiarismResults(result);
+                
+            } catch (error) {
+                console.error('Plagiarism detection error:', error);
+                showResults(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Display plagiarism results with null safety
+        function displayPlagiarismResults(result) {
+            try {
+                // Safely extract similarity score
+                const similarity = safeNumber(result.similarityPercentage, 0);
+                let similarityClass = 'low-similarity';
+                
+                if (similarity > 50) similarityClass = 'high-similarity';
+                else if (similarity > 20) similarityClass = 'medium-similarity';
+                
+                // Safely build matches HTML
+                let matchesHtml = '';
+                if (result.matches && Array.isArray(result.matches) && result.matches.length > 0) {
+                    matchesHtml = '<h4>📍 Detected Matches:</h4><div class="matches-list">';
+                    result.matches.forEach((match, index) => {
+                        if (match) { // Check if match object exists
+                            const matchText = match.matchedText || 'Unknown match';
+                            const algorithm = match.algorithm || 'Unknown';
+                            const startPos = safeNumber(match.startPosition, 0);
+                            const endPos = safeNumber(match.endPosition, 0);
+                            const confidence = safeNumber(match.confidenceScore, 0);
+                            const description = match.description || 'No description';
+                            
+                            matchesHtml += `
+                                <div class="match-item">
+                                    <strong>${algorithm}:</strong> "${matchText}"<br>
+                                    <small>
+                                        Positions: ${startPos}-${endPos} | 
+                                        Confidence: ${safeToFixed(confidence, 1)} | 
+                                        ${description}
+                                    </small>
+                                </div>
+                            `;
+                        }
+                    });
+                    matchesHtml += '</div>';
+                } else {
+                    matchesHtml = '<p>No specific matches detected.</p>';
+                }
+                
+                // Safely get other result properties
+                const status = result.status || 'Unknown';
+                const summary = result.summary || 'No summary available';
+                const matchCount = result.matches ? result.matches.length : 0;
+                
+                const resultsHtml = `
+                    <div class="similarity-score ${similarityClass}">
+                        Similarity: ${safeToFixed(similarity, 1)}%
+                    </div>
+                    <div><strong>Status:</strong> ${status}</div>
+                    <div><strong>Total Matches:</strong> ${matchCount}</div>
+                    <div><strong>Summary:</strong> ${summary}</div>
+                    ${matchesHtml}
+                `;
+                
+                showResults(resultsHtml, 'success');
+                
+            } catch (error) {
+                console.error('Error displaying results:', error);
+                showResults(`❌ Error displaying results: ${error.message}`, 'error');
+            }
+        }
+        
+        // Load sample data for testing
+        function fillSampleData() {
+            document.getElementById('sourceText').value = 
+                "Machine learning algorithms are powerful tools used for data analysis and pattern recognition. These algorithms can process large datasets and identify complex relationships within the data.";
+            
+            document.getElementById('comparisonText').value = 
+                "Machine learning algorithms are powerful tools for analyzing data and recognizing patterns. Such algorithms can handle big datasets and find complex relationships in the data.";
+        }
+
+        // Test Case 1: High Plagiarism
+        function fillTestCase1() {
+            document.getElementById('sourceText').value = 
+                "Artificial intelligence represents a paradigm shift in computational methodologies that has fundamentally transformed how we approach complex problem-solving tasks. Machine learning algorithms utilize sophisticated statistical techniques to enable computer systems to automatically improve their performance through iterative experience and data analysis.";
+            
+            document.getElementById('comparisonText').value = 
+                "Artificial intelligence represents a paradigm shift in computational methodologies that has fundamentally transformed how we approach complex problem-solving tasks. Machine learning algorithms utilize sophisticated statistical techniques to enable computer systems to automatically improve their performance through iterative experience and data analysis.";
+        }
+
+        // Test Case 2: Medium Plagiarism
+        function fillTestCase2() {
+            document.getElementById('sourceText').value = 
+                "Climate change poses unprecedented challenges to global ecosystems and environmental sustainability. Rising atmospheric temperatures and shifting precipitation patterns are systematically disrupting traditional agricultural practices worldwide.";
+            
+            document.getElementById('comparisonText').value = 
+                "Global ecosystems face extraordinary threats from climate change effects. Increasing heat levels and changing rainfall patterns are systematically disrupting conventional farming methods across the globe.";
+        }
+
+        // Test Case 3: Low Plagiarism
+        function fillTestCase3() {
+            document.getElementById('sourceText').value = 
+                "Quantum computing utilizes quantum mechanical phenomena such as superposition and entanglement to process information in fundamentally different ways than classical systems.";
+            
+            document.getElementById('comparisonText').value = 
+                "Blockchain technology represents a distributed ledger system that maintains comprehensive transaction records across multiple network nodes without central authority.";
+        }
+        
+        // API Test Functions with error handling
+        async function testHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const text = await response.text();
+                showApiResults(`✅ Health: ${text}`, 'success');
+            } catch (error) {
+                showApiResults(`❌ Health check failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAlgorithmsHigh() {
+            try {
+                const response = await fetch('/api/test-algorithms-high');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const result = await response.json();
+                const similarity = safeToFixed(result.similarityPercentage, 1);
+                const summary = result.summary || 'No summary';
+                showApiResults(`🔍 High Similarity Test: ${similarity}% - ${summary}`, 'info');
+            } catch (error) {
+                showApiResults(`❌ Algorithm test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAlgorithmsLow() {
+            try {
+                const response = await fetch('/api/test-algorithms-low');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const result = await response.json();
+                const similarity = safeToFixed(result.similarityPercentage, 1);
+                const summary = result.summary || 'No summary';
+                showApiResults(`🔍 Low Similarity Test: ${similarity}% - ${summary}`, 'info');
+            } catch (error) {
+                showApiResults(`❌ Algorithm test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Helper functions
+        function showResults(content, type) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="result-box ${type}">${content}</div>`;
+        }
+        
+        function showApiResults(content, type) {
+            const resultsDiv = document.getElementById('apiResults');
+            resultsDiv.innerHTML = `<div class="result-box ${type}">${content}</div>`;
+        }
+        
+        // Auto-load page with error handling
+        window.onload = function() {
+            try {
+                testHealth();
+            } catch (error) {
+                console.error('Failed to run initial health check:', error);
+            }
+        };
+
+        // Global error handler
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('Global error:', message, 'at', source, lineno);
+            showResults(`❌ JavaScript Error: ${message}`, 'error');
+            return true;
+        };
+    </script>
+</body>
+</html>

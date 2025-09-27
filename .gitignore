@@ -1,0 +1,61 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node.js and build tools (THE IMPORTANT PART!)
+node_modules/
+frontend/node/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build scripts and binaries
+*.bat
+*.sh
+*.exe
+*.cmd
+bin/
+scripts/build/
+scripts/install/
+
+# NPM/Node specific
+package-lock.json
+yarn.lock
+.npm/
+.node_repl_history
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Spring Boot specific
+application-local.properties
+application-dev.properties
